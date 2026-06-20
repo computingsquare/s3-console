@@ -1,0 +1,98 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "create": "Create",
+    "language": "Language",
+    "settings": "Settings",
+    "loading": "Loading...",
+    "saved": "Saved",
+    "selectAll": "Select all"
+  },
+  "nav": {
+    "overview": "Overview",
+    "buckets": "Buckets",
+    "settings": "Settings"
+  },
+  "auth": {
+    "unauthenticated": "Not authenticated. Make sure you are accessing this app through the login proxy."
+  },
+  "settings": {
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "viewMode": "File browser view",
+    "viewModeFlat": "Flat (raw S3 list)",
+    "viewModeTree": "Tree (folders)",
+    "paginationMode": "Pagination",
+    "paginationClassic": "Classic",
+    "paginationScroll": "Infinite scroll"
+  },
+  "overview": {
+    "bucketCount": "Buckets",
+    "perBucket": "Per bucket",
+    "firstLevelCount": "{{count}} item",
+    "firstLevelCount_other": "{{count}} items",
+    "countUnavailable": "unavailable"
+  },
+  "buckets": {
+    "title": "Buckets",
+    "create": "Create bucket",
+    "name": "Bucket name",
+    "filter": "Filter by name",
+    "confirmDelete": "Delete bucket \"{{name}}\"? This cannot be undone.",
+    "empty": "No buckets yet.",
+    "settingsTitle": "Bucket settings — {{name}}",
+    "settingsAccess": "Access",
+    "settingsPublic": "Public",
+    "settingsPrivate": "Private",
+    "settingsPublicHint": "Public applies a bucket policy granting anonymous read (s3:GetObject) on every object. Private removes that policy.",
+    "settingsPolicy": "Bucket policy (raw JSON)",
+    "settingsPolicyHint": "Empty = no policy. Overwrites the public/private toggle above.",
+    "settingsCors": "CORS rules (raw JSON array)",
+    "settingsLifecycle": "Lifecycle rules (raw JSON array)",
+    "settingsInvalidJson": "Invalid JSON",
+    "settingsCurrentConfig": "Current configuration"
+  },
+  "objects": {
+    "title": "Objects",
+    "upload": "Upload",
+    "download": "Download",
+    "delete": "Delete",
+    "root": "Buckets",
+    "size": "Size",
+    "lastModified": "Last modified",
+    "contentType": "Content type",
+    "etag": "ETag",
+    "metadata": "Metadata",
+    "tags": "Tags",
+    "filterName": "Filter by name",
+    "filterTag": "Filter by tag",
+    "tagFilterNote": "Tag filter only applies to objects already listed on the current page.",
+    "selectPrompt": "Select a file to preview it.",
+    "confirmDelete": "Delete \"{{name}}\"?",
+    "confirmDeleteSelected": "Delete {{count}} selected object(s)? This cannot be undone.",
+    "empty": "This folder is empty.",
+    "uploading": "Uploading {{name}}...",
+    "uploadSuccess": "Uploaded {{name}}",
+    "deleteSuccess": "Deleted {{name}}",
+    "selectedCount": "{{count}} selected",
+    "deleteSelected": "Delete selected",
+    "copySelected": "Copy to bucket...",
+    "copyTitle": "Copy {{count}} object(s) to another bucket",
+    "destinationBucket": "Destination bucket",
+    "copySuccess": "Copied {{count}} object(s)",
+    "loadMore": "Load more",
+    "page": "Page {{page}}"
+  },
+  "errors": {
+    "accessDenied": "Access denied. You do not have permission to perform this action.",
+    "notFound": "Not found.",
+    "unauthenticated": "Not authenticated. Make sure you are accessing this app through the login proxy.",
+    "notImplemented": "Not supported by this S3 backend.",
+    "network": "Network error — check your connection.",
+    "unknown": "Something went wrong."
+  }
+}

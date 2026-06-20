@@ -1,0 +1,98 @@
+{
+  "common": {
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "create": "Créer",
+    "language": "Langue",
+    "settings": "Paramètres",
+    "loading": "Chargement...",
+    "saved": "Enregistré",
+    "selectAll": "Tout sélectionner"
+  },
+  "nav": {
+    "overview": "Vue d'ensemble",
+    "buckets": "Buckets",
+    "settings": "Paramètres"
+  },
+  "auth": {
+    "unauthenticated": "Non authentifié. Vérifiez que vous accédez à cette application via le proxy de connexion."
+  },
+  "settings": {
+    "theme": "Thème",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "viewMode": "Vue de l'explorateur de fichiers",
+    "viewModeFlat": "Plat (liste S3 brute)",
+    "viewModeTree": "Arborescence (dossiers)",
+    "paginationMode": "Pagination",
+    "paginationClassic": "Classique",
+    "paginationScroll": "Défilement infini"
+  },
+  "overview": {
+    "bucketCount": "Buckets",
+    "perBucket": "Par bucket",
+    "firstLevelCount": "{{count}} élément",
+    "firstLevelCount_other": "{{count}} éléments",
+    "countUnavailable": "indisponible"
+  },
+  "buckets": {
+    "title": "Buckets",
+    "create": "Créer un bucket",
+    "name": "Nom du bucket",
+    "filter": "Filtrer par nom",
+    "confirmDelete": "Supprimer le bucket \"{{name}}\" ? Action irréversible.",
+    "empty": "Aucun bucket pour le moment.",
+    "settingsTitle": "Paramètres du bucket — {{name}}",
+    "settingsAccess": "Accès",
+    "settingsPublic": "Public",
+    "settingsPrivate": "Privé",
+    "settingsPublicHint": "Public applique une policy autorisant la lecture anonyme (s3:GetObject) sur tous les objets. Privé supprime cette policy.",
+    "settingsPolicy": "Policy du bucket (JSON brut)",
+    "settingsPolicyHint": "Vide = pas de policy. Écrase le bouton public/privé ci-dessus.",
+    "settingsCors": "Règles CORS (tableau JSON brut)",
+    "settingsLifecycle": "Règles de lifecycle (tableau JSON brut)",
+    "settingsInvalidJson": "JSON invalide",
+    "settingsCurrentConfig": "Configuration actuelle"
+  },
+  "objects": {
+    "title": "Objets",
+    "upload": "Téléverser",
+    "download": "Télécharger",
+    "delete": "Supprimer",
+    "root": "Buckets",
+    "size": "Taille",
+    "lastModified": "Dernière modification",
+    "contentType": "Type de contenu",
+    "etag": "ETag",
+    "metadata": "Métadonnées",
+    "tags": "Tags",
+    "filterName": "Filtrer par nom",
+    "filterTag": "Filtrer par tag",
+    "tagFilterNote": "Le filtre par tag ne s'applique qu'aux objets déjà listés sur la page courante.",
+    "selectPrompt": "Sélectionnez un fichier pour l'aperçu.",
+    "confirmDelete": "Supprimer \"{{name}}\" ?",
+    "confirmDeleteSelected": "Supprimer {{count}} objet(s) sélectionné(s) ? Action irréversible.",
+    "empty": "Ce dossier est vide.",
+    "uploading": "Téléversement de {{name}}...",
+    "uploadSuccess": "{{name}} téléversé",
+    "deleteSuccess": "{{name}} supprimé",
+    "selectedCount": "{{count}} sélectionné(s)",
+    "deleteSelected": "Supprimer la sélection",
+    "copySelected": "Copier vers un bucket...",
+    "copyTitle": "Copier {{count}} objet(s) vers un autre bucket",
+    "destinationBucket": "Bucket de destination",
+    "copySuccess": "{{count}} objet(s) copié(s)",
+    "loadMore": "Charger plus",
+    "page": "Page {{page}}"
+  },
+  "errors": {
+    "accessDenied": "Accès refusé. Vous n'avez pas la permission d'effectuer cette action.",
+    "notFound": "Introuvable.",
+    "unauthenticated": "Non authentifié. Vérifiez que vous accédez à cette application via le proxy de connexion.",
+    "notImplemented": "Non supporté par ce backend S3.",
+    "network": "Erreur réseau — vérifiez votre connexion.",
+    "unknown": "Une erreur est survenue."
+  }
+}

@@ -1,0 +1,12 @@
+apiVersion: v2
+name: s3-console
+description: Self-hosted web console for S3-compatible object storage (MinIO, AWS S3, Ceph, ...)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/computingsquare/s3-console
+sources:
+  - https://github.com/computingsquare/s3-console
+maintainers:
+  - name: Computing Square
+    email: contact@computingsquare.com

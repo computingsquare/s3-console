@@ -1,0 +1,35 @@
+image:
+  repository: s3-console
+  tag: latest
+  pullPolicy: IfNotPresent
+
+backendImage:
+  repository: s3-console-backend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+
+# S3/Minio connection used by the backend. Never exposed to the browser.
+s3:
+  endpoint: ""
+  region: us-east-1
+  forcePathStyle: true
+  existingSecret: "" # name of a Secret with accessKeyId/secretAccessKey keys (recommended)
+  accessKeyId: "" # fallback inline value — dev only, see README
+  secretAccessKey: ""
+
+# Identity headers injected by the reverse proxy (oauth2-proxy or equivalent) in front of this app.
+auth:
+  userHeader: X-Forwarded-Email
+  groupsHeader: X-Forwarded-Groups
+  adminGroup: s3-admin
