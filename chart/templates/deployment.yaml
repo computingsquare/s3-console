@@ -86,6 +86,10 @@ spec:
             - name: S3_SECRET_ACCESS_KEY
               value: {{ .Values.s3.secretAccessKey | quote }}
             {{- end }}
+            {{- if .Values.auth.devHeaderBypass }}
+            - name: DEV_AUTH_HEADER_BYPASS
+              value: "true"
+            {{- end }}
       volumes:
         - name: nginx-cache
           emptyDir: {}

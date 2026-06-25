@@ -33,3 +33,9 @@ auth:
   userHeader: X-Forwarded-Email
   groupsHeader: X-Forwarded-Groups
   adminGroup: s3-admin
+  # Simulates an admin user, bypassing the header check entirely. Same flag as
+  # local dev (DEV_AUTH_HEADER_BYPASS). Default false - only safe to enable
+  # when the Service is unreachable except via an already-trusted path
+  # (e.g. kubectl port-forward only, no Ingress/gatewayRoute at all). Never
+  # enable this on a deployment reachable from outside the cluster.
+  devHeaderBypass: false
