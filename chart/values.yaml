@@ -24,15 +24,26 @@ s3:
   endpoint: ""
   region: us-east-1
   forcePathStyle: true
-  existingSecret: "" # name of a Secret with accessKeyId/secretAccessKey keys (recommended)
-  accessKeyId: "" # fallback inline value — dev only, see README
-  secretAccessKey: ""
+  # If set, use this existing Secret (must have accessKeyId/secretAccessKey keys).
+  # If empty, a Secret named "<release>-credentials" is auto-generated using superAdmin below.
+  existingSecret: ""
+
+# Superadmin credentials for the S3/MinIO backend.
+# Ignored when s3.existingSecret is set.
+# The auto-generated Secret persists across upgrades (lookup-based idempotency).
+superAdmin:
+  username: admin
 
 # Identity headers injected by the reverse proxy (oauth2-proxy or equivalent) in front of this app.
 auth:
   userHeader: X-Forwarded-Email
   groupsHeader: X-Forwarded-Groups
   adminGroup: s3-admin
+  # Defense-in-depth: require this header/value on every request in addition to
+  # the user header. Set both to a shared secret configured in the upstream proxy.
+  # Prevents header-forging if the Service is accidentally exposed without the proxy.
+  sharedSecretHeader: ""  # e.g. X-Internal-Token
+  sharedSecretValue: ""
   # Simulates an admin user, bypassing the header check entirely. Same flag as
   # local dev (DEV_AUTH_HEADER_BYPASS). Default false - only safe to enable
   # when the Service is unreachable except via an already-trusted path

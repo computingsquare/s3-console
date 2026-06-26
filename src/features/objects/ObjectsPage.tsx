@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Anchor,
   Breadcrumbs,
@@ -6,6 +6,7 @@ import {
   Checkbox,
   Group,
   Modal,
+  Paper,
   Progress,
   ScrollArea,
   Select,
@@ -13,12 +14,23 @@ import {
   Text,
   TextInput,
   Title,
+  ActionIcon,
 } from '@mantine/core'
 import { Dropzone } from '@mantine/dropzone'
 import { notifications } from '@mantine/notifications'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
-import { IconChevronLeft, IconChevronRight, IconFolder, IconUpload } from '@tabler/icons-react'
+import {
+  IconChevronDown,
+  IconChevronLeft,
+  IconChevronRight,
+  IconChevronUp,
+  IconDownload,
+  IconFolder,
+  IconFolderOpen,
+  IconUpload,
+  IconX,
+} from '@tabler/icons-react'
 import { useAuth } from '../../app/providers/useAuth'
 import { api, uploadObject, type BucketSummary, type ObjectEntry, type Tag } from '../../lib/api'
 import { classifyApiError } from '../../lib/errors'
@@ -44,6 +56,7 @@ export function ObjectsPage() {
   const [paginationMode] = usePaginationMode()
   const isFlat = viewMode === 'flat'
   const prefix = isFlat ? '' : routePrefix
+  const folderInputRef = useRef<HTMLInputElement>(null)
 
   const [folders, setFolders] = useState<string[]>([])
   const [treeFiles, setTreeFiles] = useState<ObjectEntry[]>([])
@@ -62,6 +75,7 @@ export function ObjectsPage() {
   const [tagFilter, setTagFilter] = useState('')
   const [tagMatches, setTagMatches] = useState<Set<string> | null>(null)
   const [uploads, setUploads] = useState<Record<string, UploadState>>({})
+  const [panelExpanded, setPanelExpanded] = useState(true)
   const [refreshToken, setRefreshToken] = useState(0)
   const [deleteKey, setDeleteKey] = useState<string | null>(null)
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
@@ -69,6 +83,7 @@ export function ObjectsPage() {
   const [copyTarget, setCopyTarget] = useState<string | null>(null)
   const [copyBusy, setCopyBusy] = useState(false)
   const [otherBuckets, setOtherBuckets] = useState<BucketSummary[]>([])
+  const [downloadBusy, setDownloadBusy] = useState(false)
 
   const files = isFlat ? flatFiles : treeFiles
 
@@ -198,14 +213,16 @@ export function ObjectsPage() {
 
   const handleUpload = async (uploadedFiles: File[]) => {
     for (const file of uploadedFiles) {
-      const key = `${prefix}${file.name}`
+      // webkitRelativePath preserves folder structure on directory upload
+      const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name
+      const key = `${prefix}${relativePath}`
       setUploads((prev) => ({ ...prev, [key]: { progress: 0, status: 'uploading' } }))
+      setPanelExpanded(true)
       try {
         await uploadObject(bucketName, key, file, (percent) =>
           setUploads((prev) => ({ ...prev, [key]: { progress: percent, status: 'uploading' } })),
         )
         setUploads((prev) => ({ ...prev, [key]: { progress: 100, status: 'done' } }))
-        notifications.show({ color: 'green', message: t('objects.uploadSuccess', { name: file.name }) })
         setRefreshToken((v) => v + 1)
       } catch (error) {
         setUploads((prev) => ({ ...prev, [key]: { progress: 0, status: 'error' } }))
@@ -260,6 +277,17 @@ export function ObjectsPage() {
     }
   }
 
+  const downloadSelection = async () => {
+    setDownloadBusy(true)
+    try {
+      await api.downloadObjects(bucketName, [...selectedKeys])
+    } catch {
+      notifications.show({ color: 'red', message: t('errors.unknown') })
+    } finally {
+      setDownloadBusy(false)
+    }
+  }
+
   const goFlatPage = (newIndex: number) => {
     setFlatPageIndex(newIndex)
     fetchFlatPage(newIndex, flatPageTokens)
@@ -290,27 +318,46 @@ export function ObjectsPage() {
 
   const isEmpty = !loading && (isFlat ? visibleFiles.length === 0 : folders.length === 0 && visibleFiles.length === 0)
 
+  // Upload panel
+  const allUploadEntries = Object.entries(uploads)
+  const activeCount = allUploadEntries.filter(([, s]) => s.status === 'uploading').length
+
   return (
     <Stack h="calc(100vh - 110px)">
       <Title order={2}>{bucketName}</Title>
 
       {isAdmin && (
-        <Dropzone onDrop={handleUpload}>
-          <Group justify="center" gap="xs" mih={60} style={{ pointerEvents: 'none' }}>
-            <IconUpload size={18} />
-            <Text>{t('objects.upload')}</Text>
-          </Group>
-        </Dropzone>
+        <Group align="flex-start" wrap="nowrap">
+          <input
+            ref={folderInputRef}
+            type="file"
+            style={{ display: 'none' }}
+            multiple
+            // @ts-expect-error webkitdirectory not in HTML types
+            webkitdirectory=""
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? [])
+              if (files.length > 0) handleUpload(files)
+              e.target.value = ''
+            }}
+          />
+          <Dropzone onDrop={handleUpload} style={{ flex: 1 }}>
+            <Group justify="center" gap="xs" mih={60} style={{ pointerEvents: 'none' }}>
+              <IconUpload size={18} />
+              <Text>{t('objects.upload')}</Text>
+            </Group>
+          </Dropzone>
+          <Button
+            variant="default"
+            h={80}
+            px="md"
+            leftSection={<IconFolderOpen size={18} />}
+            onClick={() => folderInputRef.current?.click()}
+          >
+            {t('objects.uploadFolder')}
+          </Button>
+        </Group>
       )}
-
-      {Object.entries(uploads)
-        .filter(([, state]) => state.status !== 'done')
-        .map(([key, state]) => (
-          <div key={key}>
-            <Text size="sm">{t('objects.uploading', { name: key })}</Text>
-            <Progress value={state.progress} color={state.status === 'error' ? 'red' : 'blue'} />
-          </div>
-        ))}
 
       <Group wrap="nowrap">
         <TextInput
@@ -334,6 +381,9 @@ export function ObjectsPage() {
         <Group justify="space-between" bg="var(--mantine-color-default-hover)" p="xs" style={{ borderRadius: 4 }}>
           <Text size="sm">{t('objects.selectedCount', { count: selectedKeys.size })}</Text>
           <Group gap="xs">
+            <Button size="xs" variant="default" leftSection={<IconDownload size={14} />} loading={downloadBusy} onClick={downloadSelection}>
+              {t('objects.downloadSelected')}
+            </Button>
             {isAdmin && (
               <Button size="xs" variant="default" onClick={openCopy}>
                 {t('objects.copySelected')}
@@ -430,6 +480,71 @@ export function ObjectsPage() {
         </ScrollArea>
       </Group>
 
+      {/* Background upload panel */}
+      {allUploadEntries.length > 0 && (
+        <Paper
+          shadow="lg"
+          withBorder
+          style={{ position: 'fixed', bottom: 16, right: 16, width: 360, zIndex: 300 }}
+        >
+          <Group
+            justify="space-between"
+            p="xs"
+            style={{
+              cursor: 'pointer',
+              borderBottom: panelExpanded ? '1px solid var(--mantine-color-default-border)' : 'none',
+            }}
+            onClick={() => setPanelExpanded((v) => !v)}
+          >
+            <Text size="sm" fw={500}>
+              {activeCount > 0
+                ? t('objects.uploadsInProgress', { count: activeCount })
+                : t('objects.uploadsDone', { total: allUploadEntries.length })}
+            </Text>
+            <Group gap={4}>
+              <ActionIcon size="xs" variant="transparent" component="div">
+                {panelExpanded ? <IconChevronDown size={14} /> : <IconChevronUp size={14} />}
+              </ActionIcon>
+              <ActionIcon
+                size="xs"
+                variant="transparent"
+                component="div"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setUploads({})
+                }}
+              >
+                <IconX size={14} />
+              </ActionIcon>
+            </Group>
+          </Group>
+          {panelExpanded && (
+            <ScrollArea mah={240} p="xs">
+              <Stack gap={6}>
+                {allUploadEntries.map(([key, state]) => (
+                  <div key={key}>
+                    <Group justify="space-between" mb={2}>
+                      <Text size="xs" style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {key.split('/').pop()}
+                      </Text>
+                      <Text size="xs" c={state.status === 'error' ? 'red' : state.status === 'done' ? 'green' : 'dimmed'} style={{ flexShrink: 0 }}>
+                        {state.status === 'error' ? '✗' : state.status === 'done' ? '✓' : `${state.progress}%`}
+                      </Text>
+                    </Group>
+                    <Progress
+                      value={state.progress}
+                      color={state.status === 'error' ? 'red' : state.status === 'done' ? 'green' : 'blue'}
+                      size="xs"
+                      animated={state.status === 'uploading'}
+                    />
+                  </div>
+                ))}
+              </Stack>
+            </ScrollArea>
+          )}
+        </Paper>
+      )}
+
       <Modal opened={!!deleteKey} onClose={() => setDeleteKey(null)} title={t('common.delete')}>
         <Stack>
           <Text>{t('objects.confirmDelete', { name: deleteKey })}</Text>
@@ -485,3 +600,4 @@ function matchesTag(tags: Tag[], filter: string): boolean {
   const lower = filter.trim().toLowerCase()
   return tags.some((tag) => tag.Key.toLowerCase().includes(lower) || tag.Value.toLowerCase().includes(lower))
 }
+

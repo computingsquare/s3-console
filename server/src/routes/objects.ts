@@ -10,6 +10,7 @@ import {
 } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import type { Readable } from 'node:stream'
+import { TarArchive } from 'archiver'
 import { s3 } from '../s3'
 import { requireAdmin } from '../auth'
 import { config } from '../config'
@@ -97,6 +98,26 @@ objectsRouter.put('/', requireAdmin, async (req, res) => {
   })
   await upload.done()
   res.status(201).json({ key })
+})
+
+objectsRouter.post('/download', requireAdmin, async (req, res) => {
+  const bucket = String((req.params as Record<string, string>).name)
+  const keys: string[] = Array.isArray(req.body?.keys) ? req.body.keys : []
+  if (keys.length === 0) {
+    res.status(400).json({ error: 'no_keys' })
+    return
+  }
+  const filename = `${bucket}-selection.tar.gz`
+  res.setHeader('Content-Type', 'application/octet-stream')
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+  const archive = new TarArchive({ gzip: true })
+  archive.on('error', (err: unknown) => { console.error('archive error', err); res.destroy() })
+  archive.pipe(res)
+  for (const key of keys) {
+    const result = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+    archive.append(result.Body as Readable, { name: key })
+  }
+  await archive.finalize()
 })
 
 objectsRouter.post('/copy', requireAdmin, async (req, res) => {

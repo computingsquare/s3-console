@@ -69,22 +69,21 @@ spec:
               value: {{ .Values.auth.groupsHeader | quote }}
             - name: AUTH_ADMIN_GROUP
               value: {{ .Values.auth.adminGroup | quote }}
-            {{- if .Values.s3.existingSecret }}
             - name: S3_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.s3.existingSecret }}
+                  name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
                   key: accessKeyId
             - name: S3_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.s3.existingSecret }}
+                  name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
                   key: secretAccessKey
-            {{- else }}
-            - name: S3_ACCESS_KEY_ID
-              value: {{ .Values.s3.accessKeyId | quote }}
-            - name: S3_SECRET_ACCESS_KEY
-              value: {{ .Values.s3.secretAccessKey | quote }}
+            {{- if .Values.auth.sharedSecretHeader }}
+            - name: AUTH_SHARED_SECRET_HEADER
+              value: {{ .Values.auth.sharedSecretHeader | quote }}
+            - name: AUTH_SHARED_SECRET_VALUE
+              value: {{ .Values.auth.sharedSecretValue | quote }}
             {{- end }}
             {{- if .Values.auth.devHeaderBypass }}
             - name: DEV_AUTH_HEADER_BYPASS

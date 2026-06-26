@@ -7,6 +7,7 @@ export interface AuthUser {
 
 export interface BucketSummary {
   name: string
+  creationDate: string | null
   firstLevelCount: number | null
 }
 
@@ -139,6 +140,24 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ keys, destinationBucket }),
     }),
+
+  downloadObjects: async (bucket: string, keys: string[]) => {
+    const res = await fetch(`/api/buckets/${encodeURIComponent(bucket)}/objects/download`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keys }),
+    })
+    if (!res.ok) throw new ApiError(res.status, res.statusText)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${bucket}-selection.tar.gz`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  },
 
   getBucketSettings: (bucket: string) =>
     request<BucketSettings>(`/buckets/${encodeURIComponent(bucket)}/settings`),

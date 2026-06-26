@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ActionIcon,
+  Badge,
   Button,
+  Card,
   Group,
   Modal,
   Pagination,
+  SimpleGrid,
   Stack,
-  Table,
   Text,
   TextInput,
   Title,
@@ -14,13 +16,13 @@ import {
 import { notifications } from '@mantine/notifications'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { IconSettings, IconTrash } from '@tabler/icons-react'
+import { IconBucket, IconSettings, IconTrash } from '@tabler/icons-react'
 import { useAuth } from '../../app/providers/useAuth'
 import { api, type BucketSummary } from '../../lib/api'
 import { classifyApiError } from '../../lib/errors'
 import { BucketSettingsModal } from './BucketSettingsModal'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 12
 
 export function BucketsPage() {
   const { t } = useTranslation()
@@ -102,42 +104,52 @@ export function BucketsPage() {
       {!loading && filtered.length === 0 && <Text c="dimmed">{t('buckets.empty')}</Text>}
 
       {filtered.length > 0 && (
-        <Table>
-          <Table.Tbody>
-            {pageItems.map((bucket) => (
-              <Table.Tr key={bucket.name}>
-                <Table.Td>
-                  <Button variant="subtle" onClick={() => navigate(`/buckets/${bucket.name}/`)}>
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
+          {pageItems.map((bucket) => (
+            <Card key={bucket.name} withBorder padding="md" style={{ cursor: 'default' }}>
+              <Group justify="space-between" wrap="nowrap" align="flex-start">
+                <Group
+                  gap="sm"
+                  wrap="nowrap"
+                  style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                  onClick={() => navigate(`/buckets/${bucket.name}/`)}
+                >
+                  <IconBucket size={28} style={{ flexShrink: 0 }} />
+                  <Text fw={600} truncate size="md">
                     {bucket.name}
-                  </Button>
-                </Table.Td>
-                <Table.Td>
-                  <Text c="dimmed" size="sm">
-                    {bucket.firstLevelCount === null
-                      ? t('overview.countUnavailable')
-                      : t('overview.firstLevelCount', { count: bucket.firstLevelCount })}
                   </Text>
-                </Table.Td>
-                <Table.Td w={90}>
-                  <Group gap={4} justify="flex-end" wrap="nowrap">
-                    <ActionIcon variant="subtle" onClick={() => setSettingsTarget(bucket.name)}>
-                      <IconSettings size={16} />
+                </Group>
+                <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
+                  <ActionIcon variant="subtle" onClick={() => setSettingsTarget(bucket.name)}>
+                    <IconSettings size={16} />
+                  </ActionIcon>
+                  {isAdmin && (
+                    <ActionIcon
+                      color="red"
+                      variant="subtle"
+                      onClick={() => setDeleteTarget(bucket.name)}
+                    >
+                      <IconTrash size={16} />
                     </ActionIcon>
-                    {isAdmin && (
-                      <ActionIcon
-                        color="red"
-                        variant="subtle"
-                        onClick={() => setDeleteTarget(bucket.name)}
-                      >
-                        <IconTrash size={16} />
-                      </ActionIcon>
-                    )}
-                  </Group>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+                  )}
+                </Group>
+              </Group>
+
+              <Group gap="xs" mt={8} style={{ cursor: 'pointer' }} onClick={() => navigate(`/buckets/${bucket.name}/`)}>
+                <Badge variant="light" size="sm">
+                  {bucket.firstLevelCount === null
+                    ? t('overview.countUnavailable')
+                    : t('overview.firstLevelCount', { count: bucket.firstLevelCount })}
+                </Badge>
+                {bucket.creationDate && (
+                  <Text size="xs" c="dimmed">
+                    {t('buckets.createdAt', { date: new Date(bucket.creationDate).toLocaleDateString() })}
+                  </Text>
+                )}
+              </Group>
+            </Card>
+          ))}
+        </SimpleGrid>
       )}
 
       {pageCount > 1 && <Pagination value={page} onChange={setPage} total={pageCount} />}

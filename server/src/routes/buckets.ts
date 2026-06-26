@@ -17,14 +17,15 @@ bucketsRouter.get('/', async (_req, res) => {
   const buckets = await Promise.all(
     (Buckets ?? []).map(async (bucket) => {
       const name = bucket.Name!
+      const creationDate = bucket.CreationDate?.toISOString() ?? null
       try {
         const listing = await s3.send(
           new ListObjectsV2Command({ Bucket: name, Delimiter: '/', MaxKeys: 1000 }),
         )
         const firstLevelCount = (listing.CommonPrefixes?.length ?? 0) + (listing.Contents?.length ?? 0)
-        return { name, firstLevelCount }
+        return { name, creationDate, firstLevelCount }
       } catch {
-        return { name, firstLevelCount: null }
+        return { name, creationDate, firstLevelCount: null }
       }
     }),
   )
