@@ -56,17 +56,25 @@ spec:
               value: {{ .Values.auth.groupsHeader | quote }}
             - name: AUTH_ADMIN_GROUP
               value: {{ .Values.auth.adminGroup | quote }}
-            {{- /* S3 credentials: from existingSecret if set, else from auto-generated secret */}}
+            {{- /* S3 credentials: from existingSecret if set, else from values (injected via valuesFrom) */}}
             - name: S3_ACCESS_KEY_ID
+              {{- if .Values.s3.existingSecret }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ $s3Secret }}
+                  name: {{ .Values.s3.existingSecret }}
                   key: accessKeyId
+              {{- else }}
+              value: {{ .Values.s3.accessKeyId | quote }}
+              {{- end }}
             - name: S3_SECRET_ACCESS_KEY
+              {{- if .Values.s3.existingSecret }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ $s3Secret }}
+                  name: {{ .Values.s3.existingSecret }}
                   key: secretAccessKey
+              {{- else }}
+              value: {{ .Values.s3.secretAccessKey | quote }}
+              {{- end }}
             {{- /* App credentials: always from the auto-generated secret */}}
             - name: AUTH_LOCAL_USERNAME
               valueFrom:
