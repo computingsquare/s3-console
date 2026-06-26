@@ -79,6 +79,21 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
                   key: secretAccessKey
+            - name: AUTH_LOCAL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
+                  key: accessKeyId
+            - name: AUTH_LOCAL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
+                  key: secretAccessKey
+            - name: AUTH_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
+                  key: jwtSecret
             {{- if .Values.auth.sharedSecretHeader }}
             - name: AUTH_SHARED_SECRET_HEADER
               value: {{ .Values.auth.sharedSecretHeader | quote }}

@@ -17,7 +17,13 @@
     "settings": "Settings"
   },
   "auth": {
-    "unauthenticated": "Not authenticated. Make sure you are accessing this app through the login proxy."
+    "unauthenticated": "Not authenticated. Make sure you are accessing this app through the login proxy.",
+    "username": "Username",
+    "password": "Password",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "invalidCredentials": "Invalid credentials.",
+    "proxyNote": "Access can also be configured via an OAuth2 proxy."
   },
   "settings": {
     "theme": "Theme",

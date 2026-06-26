@@ -1,21 +1,26 @@
-import { AppShell, Center, Group, Loader, NavLink, Text, Title, ActionIcon, useMantineColorScheme, Image } from '@mantine/core'
+import { AppShell, Group, NavLink, Text, Title, ActionIcon, useMantineColorScheme, Image, Button } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { IconBucket, IconLayoutDashboard, IconMoon, IconSettings, IconSun } from '@tabler/icons-react'
+import { IconBucket, IconLayoutDashboard, IconLogout, IconMoon, IconSettings, IconSun } from '@tabler/icons-react'
 import { useAuth } from '../app/providers/useAuth'
 
 export function Layout() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, loading, unauthenticated } = useAuth()
+  const { user, logout } = useAuth()
   const { colorScheme, setColorScheme } = useMantineColorScheme()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <AppShell header={{ height: 60 }} navbar={{ width: 220, breakpoint: 'sm' }} padding="md">
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
-          <Group gap="xs" h="100%" >
+          <Group gap="xs" h="100%">
             <Image src="/logo.jpg" alt="S3 Console" w={36} h={36} radius="sm" />
             <Title>S3 Console</Title>
           </Group>
@@ -28,6 +33,15 @@ export function Layout() {
             >
               {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
             </ActionIcon>
+            <Button
+              size="xs"
+              variant="subtle"
+              color="gray"
+              leftSection={<IconLogout size={14} />}
+              onClick={handleLogout}
+            >
+              {t('auth.logout')}
+            </Button>
           </Group>
         </Group>
       </AppShell.Header>
@@ -52,17 +66,7 @@ export function Layout() {
         />
       </AppShell.Navbar>
       <AppShell.Main>
-        {loading ? (
-          <Center h="60vh">
-            <Loader />
-          </Center>
-        ) : unauthenticated ? (
-          <Center h="60vh">
-            <Text c="dimmed">{t('auth.unauthenticated')}</Text>
-          </Center>
-        ) : (
-          <Outlet />
-        )}
+        <Outlet />
       </AppShell.Main>
     </AppShell>
   )

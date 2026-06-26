@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 function required(name: string): string {
   const value = process.env[name]
   if (!value) {
@@ -27,6 +29,14 @@ export const config = {
     // Dev/e2e convenience only: fills in a default identity when the user header is
     // absent. Never set this in production — it defeats the proxy trust model.
     devBypass: process.env.DEV_AUTH_HEADER_BYPASS === 'true',
+    // Local username/password auth (optional, for deployments without a proxy).
+    localUsername: process.env.AUTH_LOCAL_USERNAME,
+    localPassword: process.env.AUTH_LOCAL_PASSWORD,
+    // JWT secret for session cookies. Auto-generated if absent (sessions won't survive restarts).
+    jwtSecret: process.env.AUTH_JWT_SECRET ?? (() => {
+      console.warn('[auth] AUTH_JWT_SECRET not set; sessions will not survive restart')
+      return randomBytes(32).toString('hex')
+    })(),
   },
 
   maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES ?? 5 * 1024 * 1024 * 1024),

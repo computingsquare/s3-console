@@ -99,6 +99,14 @@ export function uploadObject(
 export const api = {
   me: () => request<{ user: AuthUser }>('/me'),
 
+  login: (username: string, password: string) =>
+    request<{ user: AuthUser }>('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    }),
+  logout: () => request<void>('/auth/logout', { method: 'POST' }),
+
   listBuckets: () => request<{ buckets: BucketSummary[] }>('/buckets'),
   createBucket: (name: string) =>
     request<{ name: string }>('/buckets', {

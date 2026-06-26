@@ -6,6 +6,8 @@ export interface AuthContextValue {
   isAdmin: boolean
   loading: boolean
   unauthenticated: boolean
+  login: (username: string, password: string) => Promise<void>
+  logout: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

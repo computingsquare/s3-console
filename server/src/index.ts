@@ -1,14 +1,19 @@
 import express, { type ErrorRequestHandler } from 'express'
 import helmet from 'helmet'
+import cookieParser from 'cookie-parser'
 import { config } from './config'
 import { requireAuth } from './auth'
+import { authRouter } from './routes/auth'
 import { bucketsRouter } from './routes/buckets'
 import { objectsRouter } from './routes/objects'
 import { bucketSettingsRouter } from './routes/bucketSettings'
 
 const app = express()
 app.use(helmet())
+app.use(cookieParser())
 app.use(express.json())
+// Auth routes are public (no requireAuth)
+app.use('/api/auth', authRouter)
 app.use('/api', requireAuth)
 
 app.get('/api/me', (req, res) => res.json({ user: req.user }))

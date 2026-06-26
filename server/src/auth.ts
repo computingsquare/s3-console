@@ -1,4 +1,6 @@
+import { timingSafeEqual } from 'node:crypto'
 import type { NextFunction, Request, Response } from 'express'
+import jwt from 'jsonwebtoken'
 import { config } from './config'
 
 export type Role = 'admin' | 'viewer'
@@ -14,6 +16,23 @@ declare global {
     interface Request {
       user?: AuthUser
     }
+  }
+}
+
+export function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+}
+
+function jwtUser(req: Request): AuthUser | null {
+  const token = (req.cookies as Record<string, string> | undefined)?.session
+  if (!token) return null
+  try {
+    const payload = jwt.verify(token, config.auth.jwtSecret) as { email: string; role: Role }
+    if (!payload.email || !payload.role) return null
+    return { email: payload.email, role: payload.role }
+  } catch {
+    return null
   }
 }
 
@@ -51,7 +70,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     res.status(401).json({ error: 'unauthorized' })
     return
   }
-  const user = deriveUser(req.headers)
+  const user = deriveUser(req.headers) ?? jwtUser(req)
   if (!user) {
     res.status(401).json({ error: 'unauthorized' })
     return
