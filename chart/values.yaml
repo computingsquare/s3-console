@@ -19,6 +19,15 @@ ingress:
   className: ""
   host: ""
 
+# Gateway API HTTPRoute (alternative to ingress, for clusters with a Gateway controller).
+# Enable auth.disableProxyHeaders=true when using this without an oauth2-proxy.
+gateway:
+  enabled: false
+  name: ""          # name of the Gateway resource (required if enabled)
+  namespace: ""     # namespace of the Gateway (defaults to same namespace)
+  sectionName: ""   # optional listener name
+  host: ""          # hostname for routing (optional, omit to match all hosts)
+
 # S3/Minio connection used by the backend. Never exposed to the browser.
 s3:
   endpoint: ""
@@ -39,6 +48,11 @@ auth:
   userHeader: X-Forwarded-Email
   groupsHeader: X-Forwarded-Groups
   adminGroup: s3-admin
+  # Set to true when the app is exposed publicly without a trusted oauth2-proxy
+  # in front (e.g. via gateway.enabled=true). Disables X-Forwarded-* header auth
+  # entirely; only JWT cookie (username/password login) is accepted.
+  # IMPORTANT: leave false only if a trusted proxy always injects the user headers.
+  disableProxyHeaders: false
   # Defense-in-depth: require this header/value on every request in addition to
   # the user header. Set both to a shared secret configured in the upstream proxy.
   # Prevents header-forging if the Service is accidentally exposed without the proxy.

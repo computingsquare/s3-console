@@ -23,6 +23,7 @@
     "login": "Sign in",
     "logout": "Sign out",
     "invalidCredentials": "Invalid credentials.",
+    "localAuthDisabled": "Local authentication is not configured. Contact your administrator.",
     "proxyNote": "Access can also be configured via an OAuth2 proxy."
   },
   "settings": {

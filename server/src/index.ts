@@ -1,4 +1,4 @@
-import express, { type ErrorRequestHandler } from 'express'
+import express, { Router, type ErrorRequestHandler } from 'express'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import { config } from './config'
@@ -12,14 +12,17 @@ const app = express()
 app.use(helmet())
 app.use(cookieParser())
 app.use(express.json())
-// Auth routes are public (no requireAuth)
+// Public: login / logout (no auth required)
 app.use('/api/auth', authRouter)
-app.use('/api', requireAuth)
 
-app.get('/api/me', (req, res) => res.json({ user: req.user }))
-app.use('/api/buckets/:name/objects', objectsRouter)
-app.use('/api/buckets/:name/settings', bucketSettingsRouter)
-app.use('/api/buckets', bucketsRouter)
+// Protected: everything else under /api requires a valid session
+const protectedApi = Router()
+protectedApi.use(requireAuth)
+protectedApi.get('/me', (req, res) => res.json({ user: req.user }))
+protectedApi.use('/buckets/:name/objects', objectsRouter)
+protectedApi.use('/buckets/:name/settings', bucketSettingsRouter)
+protectedApi.use('/buckets', bucketsRouter)
+app.use('/api', protectedApi)
 
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   const name = err?.name ?? ''

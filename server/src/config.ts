@@ -37,6 +37,9 @@ export const config = {
       console.warn('[auth] AUTH_JWT_SECRET not set; sessions will not survive restart')
       return randomBytes(32).toString('hex')
     })(),
+    // When true, ignores X-Forwarded-Email/Groups entirely; auth is JWT-cookie-only.
+    // Required when the app is exposed publicly without a trusted proxy in front.
+    disableProxyHeaders: process.env.AUTH_DISABLE_PROXY_HEADERS === 'true',
   },
 
   maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES ?? 5 * 1024 * 1024 * 1024),

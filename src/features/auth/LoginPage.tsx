@@ -24,7 +24,10 @@ export function LoginPage() {
       await login(username, password)
     } catch (err) {
       const code = classifyApiError(err)
-      setError(code === 'accessDenied' ? t('auth.invalidCredentials') : t(`errors.${code}`))
+      // 401 = wrong creds, 501 = local auth not configured on server
+      if (code === 'unauthenticated') setError(t('auth.invalidCredentials'))
+      else if (code === 'notImplemented') setError(t('auth.localAuthDisabled'))
+      else setError(t(`errors.${code}`))
     } finally {
       setBusy(false)
     }

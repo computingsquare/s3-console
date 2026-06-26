@@ -1,3 +1,5 @@
+{{- $appSecret := printf "%s-credentials" .Release.Name }}
+{{- $s3Secret := .Values.s3.existingSecret | default $appSecret }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -69,31 +71,37 @@ spec:
               value: {{ .Values.auth.groupsHeader | quote }}
             - name: AUTH_ADMIN_GROUP
               value: {{ .Values.auth.adminGroup | quote }}
+            {{- /* S3 credentials: from existingSecret if set, else from auto-generated secret */}}
             - name: S3_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
+                  name: {{ $s3Secret }}
                   key: accessKeyId
             - name: S3_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
+                  name: {{ $s3Secret }}
                   key: secretAccessKey
+            {{- /* App credentials: always from the auto-generated secret */}}
             - name: AUTH_LOCAL_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
+                  name: {{ $appSecret }}
                   key: accessKeyId
             - name: AUTH_LOCAL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
+                  name: {{ $appSecret }}
                   key: secretAccessKey
             - name: AUTH_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.s3.existingSecret | default (printf "%s-credentials" .Release.Name) }}
+                  name: {{ $appSecret }}
                   key: jwtSecret
+            {{- if .Values.auth.disableProxyHeaders }}
+            - name: AUTH_DISABLE_PROXY_HEADERS
+              value: "true"
+            {{- end }}
             {{- if .Values.auth.sharedSecretHeader }}
             - name: AUTH_SHARED_SECRET_HEADER
               value: {{ .Values.auth.sharedSecretHeader | quote }}

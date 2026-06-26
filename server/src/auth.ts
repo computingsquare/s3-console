@@ -44,6 +44,8 @@ function headerValue(headers: Headers, name: string): string | undefined {
 }
 
 export function deriveUser(headers: Headers): AuthUser | null {
+  if (config.auth.disableProxyHeaders) return null
+
   const email = headerValue(headers, config.auth.userHeader)
   if (!email) {
     if (config.auth.devBypass) {

@@ -23,6 +23,7 @@
     "login": "Se connecter",
     "logout": "Se déconnecter",
     "invalidCredentials": "Identifiants incorrects.",
+    "localAuthDisabled": "Authentification locale non configurée. Contactez votre administrateur.",
     "proxyNote": "L'accès peut aussi être configuré via un proxy OAuth2."
   },
   "settings": {
