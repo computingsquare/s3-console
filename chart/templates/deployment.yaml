@@ -44,6 +44,8 @@ spec:
             - name: tmp
               mountPath: /tmp
           env:
+            - name: MAX_BODY_SIZE
+              value: {{ .Values.maxUploadSize | default "10g" | quote }}
             - name: S3_ENDPOINT
               value: {{ .Values.s3.endpoint | quote }}
             - name: S3_REGION

@@ -14,6 +14,10 @@ ingress:
   className: ""
   host: ""
 
+# Maximum upload size enforced by nginx and the backend.
+# nginx format: "500m", "10g", "0" (unlimited). Backend reads the same value.
+maxUploadSize: "10g"
+
 # Gateway API exposure with automatic TLS via cert-manager.
 # Replaces the Ingress when enabled. Requires cert-manager and a Gateway controller
 # (e.g. Cilium, Envoy Gateway, nginx Gateway Fabric) pre-installed in the cluster.

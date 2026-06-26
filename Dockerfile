@@ -26,6 +26,7 @@ FROM nginxinc/nginx-unprivileged:alpine AS frontend
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 ENV BACKEND_HOST=localhost:4000
+ENV MAX_BODY_SIZE=10g
 EXPOSE 8080
 
 # ---- final image: backend (Node/Express, holds the S3 credentials) ----
@@ -49,6 +50,7 @@ COPY --from=backend-prod-deps --chown=nginx:nginx /app/node_modules /app/backend
 COPY --from=node:24-alpine /usr/local/bin/node /usr/local/bin/node
 COPY --chmod=755 docker-entrypoint-app.sh /docker-entrypoint-app.sh
 ENV BACKEND_HOST=localhost:4000
+ENV MAX_BODY_SIZE=10g
 EXPOSE 8080
 ENTRYPOINT ["/docker-entrypoint-app.sh"]
 CMD ["nginx", "-g", "daemon off;"]

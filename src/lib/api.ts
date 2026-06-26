@@ -9,12 +9,14 @@ export interface BucketSummary {
   name: string
   creationDate: string | null
   firstLevelCount: number | null
+  isPublic: boolean
 }
 
 export interface ObjectEntry {
   key: string
   size?: number
   lastModified?: string
+  storageClass?: string
 }
 
 export interface ObjectListing {
@@ -29,6 +31,11 @@ export interface ObjectHead {
   lastModified?: string
   etag?: string
   metadata?: Record<string, string>
+  storageClass?: string
+  versionId?: string | null
+  legalHold?: string | null
+  retentionMode?: string | null
+  retainUntilDate?: string | null
 }
 
 export interface Tag {
@@ -56,6 +63,18 @@ export interface BucketSettings {
   isPublic: boolean
   cors: CorsRule[]
   lifecycle: LifecycleRule[]
+}
+
+export interface BucketStats {
+  objectCount: number
+  totalSize: number
+  truncated: boolean
+}
+
+export interface NotificationConfig {
+  TopicConfigurations: unknown[]
+  QueueConfigurations: unknown[]
+  LambdaFunctionConfigurations: unknown[]
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -136,6 +155,12 @@ export const api = {
     request<{ tags: Tag[] }>(
       `/buckets/${encodeURIComponent(bucket)}/objects/tags?key=${encodeURIComponent(key)}`,
     ),
+  setTagsObject: (bucket: string, key: string, tags: Tag[]) =>
+    request<void>(`/buckets/${encodeURIComponent(bucket)}/objects/tags?key=${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags }),
+    }),
   deleteObjects: (bucket: string, keys: string[]) =>
     request<void>(`/buckets/${encodeURIComponent(bucket)}/objects`, {
       method: 'DELETE',
@@ -147,6 +172,12 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ keys, destinationBucket }),
+    }),
+  mkdir: (bucket: string, prefix: string) =>
+    request<{ key: string }>(`/buckets/${encodeURIComponent(bucket)}/objects/mkdir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefix }),
     }),
 
   downloadObjects: async (bucket: string, keys: string[]) => {
@@ -193,4 +224,30 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rules }),
     }),
+  getBucketVersioning: (bucket: string) =>
+    request<{ status: string }>(`/buckets/${encodeURIComponent(bucket)}/settings/versioning`),
+  setBucketVersioning: (bucket: string, enabled: boolean) =>
+    request<void>(`/buckets/${encodeURIComponent(bucket)}/settings/versioning`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    }),
+  getBucketTagging: (bucket: string) =>
+    request<{ tags: Tag[] }>(`/buckets/${encodeURIComponent(bucket)}/settings/tagging`),
+  setBucketTagging: (bucket: string, tags: Tag[]) =>
+    request<void>(`/buckets/${encodeURIComponent(bucket)}/settings/tagging`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags }),
+    }),
+  getBucketNotifications: (bucket: string) =>
+    request<{ config: NotificationConfig | null }>(`/buckets/${encodeURIComponent(bucket)}/settings/notifications`),
+  setBucketNotifications: (bucket: string, config: NotificationConfig) =>
+    request<void>(`/buckets/${encodeURIComponent(bucket)}/settings/notifications`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config }),
+    }),
+  getBucketStats: (bucket: string) =>
+    request<BucketStats>(`/buckets/${encodeURIComponent(bucket)}/settings/stats`),
 }

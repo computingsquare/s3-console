@@ -2,11 +2,13 @@ import { Router } from 'express'
 import {
   CreateBucketCommand,
   DeleteBucketCommand,
+  GetBucketPolicyCommand,
   ListBucketsCommand,
   ListObjectsV2Command,
 } from '@aws-sdk/client-s3'
 import { s3 } from '../s3'
 import { requireAdmin } from '../auth'
+import { isPublicPolicy } from '../policyUtils'
 
 export const bucketsRouter = Router()
 
@@ -18,15 +20,18 @@ bucketsRouter.get('/', async (_req, res) => {
     (Buckets ?? []).map(async (bucket) => {
       const name = bucket.Name!
       const creationDate = bucket.CreationDate?.toISOString() ?? null
-      try {
-        const listing = await s3.send(
-          new ListObjectsV2Command({ Bucket: name, Delimiter: '/', MaxKeys: 1000 }),
-        )
-        const firstLevelCount = (listing.CommonPrefixes?.length ?? 0) + (listing.Contents?.length ?? 0)
-        return { name, creationDate, firstLevelCount }
-      } catch {
-        return { name, creationDate, firstLevelCount: null }
-      }
+      const [listingResult, policyResult] = await Promise.allSettled([
+        s3.send(new ListObjectsV2Command({ Bucket: name, Delimiter: '/', MaxKeys: 1000 })),
+        s3.send(new GetBucketPolicyCommand({ Bucket: name })),
+      ])
+      const firstLevelCount =
+        listingResult.status === 'fulfilled'
+          ? (listingResult.value.CommonPrefixes?.length ?? 0) +
+            (listingResult.value.Contents?.length ?? 0)
+          : null
+      const policy =
+        policyResult.status === 'fulfilled' ? (policyResult.value.Policy ?? null) : null
+      return { name, creationDate, firstLevelCount, isPublic: isPublicPolicy(policy) }
     }),
   )
   res.json({ buckets })

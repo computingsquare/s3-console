@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ActionIcon,
   Anchor,
   Breadcrumbs,
   Button,
@@ -14,9 +15,7 @@ import {
   Text,
   TextInput,
   Title,
-  ActionIcon,
 } from '@mantine/core'
-import { Dropzone } from '@mantine/dropzone'
 import { notifications } from '@mantine/notifications'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -26,9 +25,16 @@ import {
   IconChevronRight,
   IconChevronUp,
   IconDownload,
+  IconFile,
+  IconFileCode,
+  IconFileSpreadsheet,
+  IconFileText,
+  IconFileZip,
   IconFolder,
-  IconFolderOpen,
+  IconFolderPlus,
+  IconPhoto,
   IconUpload,
+  IconVideo,
   IconX,
 } from '@tabler/icons-react'
 import { useAuth } from '../../app/providers/useAuth'
@@ -45,6 +51,25 @@ interface UploadState {
   status: 'uploading' | 'done' | 'error'
 }
 
+function fileIcon(key: string, size = 15) {
+  const ext = key.split('.').pop()?.toLowerCase() ?? ''
+  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'ico', 'bmp', 'tiff', 'avif'].includes(ext))
+    return <IconPhoto size={size} />
+  if (['mp4', 'mkv', 'avi', 'mov', 'webm', 'flv'].includes(ext))
+    return <IconVideo size={size} />
+  if (['pdf'].includes(ext))
+    return <IconFileText size={size} />
+  if (['zip', 'gz', 'tar', 'bz2', 'xz', 'rar', '7z', 'zst'].includes(ext))
+    return <IconFileZip size={size} />
+  if (['js', 'ts', 'jsx', 'tsx', 'py', 'go', 'rs', 'java', 'c', 'cpp', 'h', 'sh', 'yaml', 'yml', 'toml', 'xml', 'html', 'css', 'json'].includes(ext))
+    return <IconFileCode size={size} />
+  if (['csv', 'parquet', 'xlsx', 'xls', 'ods'].includes(ext))
+    return <IconFileSpreadsheet size={size} />
+  if (['txt', 'md', 'rst', 'log'].includes(ext))
+    return <IconFileText size={size} />
+  return <IconFile size={size} />
+}
+
 export function ObjectsPage() {
   const { t } = useTranslation()
   const { isAdmin } = useAuth()
@@ -56,6 +81,7 @@ export function ObjectsPage() {
   const [paginationMode] = usePaginationMode()
   const isFlat = viewMode === 'flat'
   const prefix = isFlat ? '' : routePrefix
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
 
   const [folders, setFolders] = useState<string[]>([])
@@ -84,6 +110,8 @@ export function ObjectsPage() {
   const [copyBusy, setCopyBusy] = useState(false)
   const [otherBuckets, setOtherBuckets] = useState<BucketSummary[]>([])
   const [downloadBusy, setDownloadBusy] = useState(false)
+  const [mkdirOpen, setMkdirOpen] = useState(false)
+  const [mkdirName, setMkdirName] = useState('')
 
   const files = isFlat ? flatFiles : treeFiles
 
@@ -174,9 +202,7 @@ export function ObjectsPage() {
     ).then((results) => {
       if (!cancelled) setTagMatches(new Set(results.filter((r) => r.match).map((r) => r.key)))
     })
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [tagFilter, files, bucketName])
 
   const keyName = (key: string) => key.slice(prefix.length)
@@ -213,7 +239,6 @@ export function ObjectsPage() {
 
   const handleUpload = async (uploadedFiles: File[]) => {
     for (const file of uploadedFiles) {
-      // webkitRelativePath preserves folder structure on directory upload
       const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name
       const key = `${prefix}${relativePath}`
       setUploads((prev) => ({ ...prev, [key]: { progress: 0, status: 'uploading' } }))
@@ -288,6 +313,20 @@ export function ObjectsPage() {
     }
   }
 
+  const confirmMkdir = async () => {
+    const name = mkdirName.trim().replace(/\/+$/, '')
+    if (!name) return
+    const newPrefix = `${prefix}${name}/`
+    try {
+      await api.mkdir(bucketName, newPrefix)
+      setMkdirOpen(false)
+      setMkdirName('')
+      setRefreshToken((v) => v + 1)
+    } catch (error) {
+      notifications.show({ color: 'red', message: t(`errors.${classifyApiError(error)}`) })
+    }
+  }
+
   const goFlatPage = (newIndex: number) => {
     setFlatPageIndex(newIndex)
     fetchFlatPage(newIndex, flatPageTokens)
@@ -299,7 +338,7 @@ export function ObjectsPage() {
       justify="space-between"
       wrap="nowrap"
       bg={selectedKey === file.key ? 'var(--mantine-color-default-hover)' : undefined}
-      style={{ cursor: 'pointer', padding: 4, borderRadius: 4 }}
+      style={{ cursor: 'pointer', padding: '4px 6px', borderRadius: 4 }}
       onClick={() => setSelectedKey(file.key!)}
     >
       <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
@@ -308,9 +347,12 @@ export function ObjectsPage() {
           onChange={() => toggleSelect(file.key!)}
           onClick={(e) => e.stopPropagation()}
         />
-        <Text truncate>{keyName(file.key!)}</Text>
+        <Text c="dimmed" style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+          {fileIcon(file.key!)}
+        </Text>
+        <Text truncate size="sm">{keyName(file.key!)}</Text>
       </Group>
-      <Text size="xs" c="dimmed">
+      <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
         {formatBytes(file.size ?? 0)}
       </Text>
     </Group>
@@ -318,7 +360,6 @@ export function ObjectsPage() {
 
   const isEmpty = !loading && (isFlat ? visibleFiles.length === 0 : folders.length === 0 && visibleFiles.length === 0)
 
-  // Upload panel
   const allUploadEntries = Object.entries(uploads)
   const activeCount = allUploadEntries.filter(([, s]) => s.status === 'uploading').length
 
@@ -327,7 +368,19 @@ export function ObjectsPage() {
       <Title order={2}>{bucketName}</Title>
 
       {isAdmin && (
-        <Group align="flex-start" wrap="nowrap">
+        <Group gap="xs">
+          {/* Hidden file inputs */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            style={{ display: 'none' }}
+            multiple
+            onChange={(e) => {
+              const picked = Array.from(e.target.files ?? [])
+              if (picked.length > 0) handleUpload(picked)
+              e.target.value = ''
+            }}
+          />
           <input
             ref={folderInputRef}
             type="file"
@@ -336,26 +389,34 @@ export function ObjectsPage() {
             // @ts-expect-error webkitdirectory not in HTML types
             webkitdirectory=""
             onChange={(e) => {
-              const files = Array.from(e.target.files ?? [])
-              if (files.length > 0) handleUpload(files)
+              const picked = Array.from(e.target.files ?? [])
+              if (picked.length > 0) handleUpload(picked)
               e.target.value = ''
             }}
           />
-          <Dropzone onDrop={handleUpload} style={{ flex: 1 }}>
-            <Group justify="center" gap="xs" mih={60} style={{ pointerEvents: 'none' }}>
-              <IconUpload size={18} />
-              <Text>{t('objects.upload')}</Text>
-            </Group>
-          </Dropzone>
           <Button
             variant="default"
-            h={80}
-            px="md"
-            leftSection={<IconFolderOpen size={18} />}
+            leftSection={<IconUpload size={15} />}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {t('objects.upload')}
+          </Button>
+          <Button
+            variant="default"
+            leftSection={<IconFolder size={15} />}
             onClick={() => folderInputRef.current?.click()}
           >
             {t('objects.uploadFolder')}
           </Button>
+          {!isFlat && (
+            <Button
+              variant="default"
+              leftSection={<IconFolderPlus size={15} />}
+              onClick={() => { setMkdirName(''); setMkdirOpen(true) }}
+            >
+              {t('objects.createPath')}
+            </Button>
+          )}
         </Group>
       )}
 
@@ -373,9 +434,7 @@ export function ObjectsPage() {
           style={{ flex: 1 }}
         />
       </Group>
-      <Text size="xs" c="dimmed">
-        {t('objects.tagFilterNote')}
-      </Text>
+      <Text size="xs" c="dimmed">{t('objects.tagFilterNote')}</Text>
 
       {selectedKeys.size > 0 && (
         <Group justify="space-between" bg="var(--mantine-color-default-hover)" p="xs" style={{ borderRadius: 4 }}>
@@ -408,7 +467,7 @@ export function ObjectsPage() {
             }
           }}
         >
-          <Stack gap="xs">
+          <Stack gap={2}>
             {!isFlat && (
               <Breadcrumbs>
                 <Anchor onClick={() => navigate('/buckets')}>{t('objects.root')}</Anchor>
@@ -430,10 +489,10 @@ export function ObjectsPage() {
                   gap="xs"
                   wrap="nowrap"
                   onClick={() => goTo(folderPrefix)}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', padding: '4px 6px', borderRadius: 4 }}
                 >
-                  <IconFolder size={16} />
-                  <Text>{folderName(folderPrefix)}</Text>
+                  <IconFolder size={15} color="var(--mantine-color-yellow-6)" />
+                  <Text size="sm">{folderName(folderPrefix)}</Text>
                 </Group>
               ))}
 
@@ -442,6 +501,8 @@ export function ObjectsPage() {
                 label={t('common.selectAll')}
                 checked={allVisibleSelected}
                 onChange={toggleSelectAll}
+                mt={4}
+                mb={2}
               />
             )}
             {visibleFiles.map(renderFileRow)}
@@ -468,9 +529,7 @@ export function ObjectsPage() {
               </Group>
             )}
             {isFlat && paginationMode === 'scroll' && flatLoadingMore && (
-              <Text size="xs" c="dimmed" ta="center">
-                {t('common.loading')}
-              </Text>
+              <Text size="xs" c="dimmed" ta="center">{t('common.loading')}</Text>
             )}
           </Stack>
         </ScrollArea>
@@ -545,16 +604,33 @@ export function ObjectsPage() {
         </Paper>
       )}
 
+      {/* Create path modal */}
+      <Modal opened={mkdirOpen} onClose={() => setMkdirOpen(false)} title={t('objects.createPath')}>
+        <Stack>
+          <Text size="sm" c="dimmed">
+            {t('objects.createPathHint', { prefix: prefix || '/' })}
+          </Text>
+          <TextInput
+            label={t('objects.createPathLabel')}
+            placeholder="my-folder/subfolder"
+            value={mkdirName}
+            onChange={(e) => setMkdirName(e.currentTarget.value)}
+            onKeyDown={(e) => e.key === 'Enter' && confirmMkdir()}
+            autoFocus
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setMkdirOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={confirmMkdir} disabled={!mkdirName.trim()}>{t('common.create')}</Button>
+          </Group>
+        </Stack>
+      </Modal>
+
       <Modal opened={!!deleteKey} onClose={() => setDeleteKey(null)} title={t('common.delete')}>
         <Stack>
           <Text>{t('objects.confirmDelete', { name: deleteKey })}</Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setDeleteKey(null)}>
-              {t('common.cancel')}
-            </Button>
-            <Button color="red" onClick={confirmDelete}>
-              {t('common.confirm')}
-            </Button>
+            <Button variant="default" onClick={() => setDeleteKey(null)}>{t('common.cancel')}</Button>
+            <Button color="red" onClick={confirmDelete}>{t('common.confirm')}</Button>
           </Group>
         </Stack>
       </Modal>
@@ -563,12 +639,8 @@ export function ObjectsPage() {
         <Stack>
           <Text>{t('objects.confirmDeleteSelected', { count: selectedKeys.size })}</Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setBulkDeleteOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button color="red" onClick={confirmBulkDelete}>
-              {t('common.confirm')}
-            </Button>
+            <Button variant="default" onClick={() => setBulkDeleteOpen(false)}>{t('common.cancel')}</Button>
+            <Button color="red" onClick={confirmBulkDelete}>{t('common.confirm')}</Button>
           </Group>
         </Stack>
       </Modal>
@@ -583,12 +655,8 @@ export function ObjectsPage() {
             searchable
           />
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setCopyOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={confirmCopy} disabled={!copyTarget} loading={copyBusy}>
-              {t('common.confirm')}
-            </Button>
+            <Button variant="default" onClick={() => setCopyOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={confirmCopy} disabled={!copyTarget} loading={copyBusy}>{t('common.confirm')}</Button>
           </Group>
         </Stack>
       </Modal>
@@ -600,4 +668,3 @@ function matchesTag(tags: Tag[], filter: string): boolean {
   const lower = filter.trim().toLowerCase()
   return tags.some((tag) => tag.Key.toLowerCase().includes(lower) || tag.Value.toLowerCase().includes(lower))
 }
-

@@ -4,9 +4,13 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  GetObjectLegalHoldCommand,
+  GetObjectRetentionCommand,
   GetObjectTaggingCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
+  PutObjectCommand,
+  PutObjectTaggingCommand,
 } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import type { Readable } from 'node:stream'
@@ -23,7 +27,6 @@ objectsRouter.get('/', async (req, res) => {
   const continuationToken = req.query.continuationToken
     ? String(req.query.continuationToken)
     : undefined
-  // delimiter unset -> folder navigation ('/'); delimiter='' (empty string) -> true flat listing
   const delimiter = req.query.delimiter === undefined ? '/' : String(req.query.delimiter) || undefined
   const maxKeys = req.query.maxKeys ? Number(req.query.maxKeys) : undefined
 
@@ -41,7 +44,7 @@ objectsRouter.get('/', async (req, res) => {
     folders: (result.CommonPrefixes ?? []).map((p) => p.Prefix!).filter(Boolean),
     files: (result.Contents ?? [])
       .filter((o) => o.Key !== prefix)
-      .map((o) => ({ key: o.Key, size: o.Size, lastModified: o.LastModified })),
+      .map((o) => ({ key: o.Key, size: o.Size, lastModified: o.LastModified, storageClass: o.StorageClass })),
     nextContinuationToken: result.NextContinuationToken,
   })
 })
@@ -49,13 +52,30 @@ objectsRouter.get('/', async (req, res) => {
 objectsRouter.get('/head', async (req, res) => {
   const bucket = String((req.params as Record<string, string>).name)
   const key = String(req.query.key ?? '')
-  const result = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+  const [headResult, legalHoldResult, retentionResult] = await Promise.allSettled([
+    s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key })),
+    s3.send(new GetObjectLegalHoldCommand({ Bucket: bucket, Key: key })),
+    s3.send(new GetObjectRetentionCommand({ Bucket: bucket, Key: key })),
+  ])
+  if (headResult.status === 'rejected') throw headResult.reason
+  const h = headResult.value
   res.json({
-    size: result.ContentLength,
-    contentType: result.ContentType,
-    lastModified: result.LastModified,
-    etag: result.ETag,
-    metadata: result.Metadata,
+    size: h.ContentLength,
+    contentType: h.ContentType,
+    lastModified: h.LastModified,
+    etag: h.ETag,
+    metadata: h.Metadata,
+    storageClass: h.StorageClass ?? 'STANDARD',
+    versionId: h.VersionId ?? null,
+    legalHold: legalHoldResult.status === 'fulfilled'
+      ? (legalHoldResult.value.LegalHold?.Status ?? null)
+      : null,
+    retentionMode: retentionResult.status === 'fulfilled'
+      ? (retentionResult.value.Retention?.Mode ?? null)
+      : null,
+    retainUntilDate: retentionResult.status === 'fulfilled'
+      ? (retentionResult.value.Retention?.RetainUntilDate?.toISOString() ?? null)
+      : null,
   })
 })
 
@@ -64,6 +84,14 @@ objectsRouter.get('/tags', async (req, res) => {
   const key = String(req.query.key ?? '')
   const result = await s3.send(new GetObjectTaggingCommand({ Bucket: bucket, Key: key }))
   res.json({ tags: result.TagSet ?? [] })
+})
+
+objectsRouter.put('/tags', requireAdmin, async (req, res) => {
+  const bucket = String((req.params as Record<string, string>).name)
+  const key = String(req.query.key ?? '')
+  const tags: Array<{ Key: string; Value: string }> = Array.isArray(req.body?.tags) ? req.body.tags : []
+  await s3.send(new PutObjectTaggingCommand({ Bucket: bucket, Key: key, Tagging: { TagSet: tags } }))
+  res.status(204).end()
 })
 
 objectsRouter.get('/content', async (req, res) => {
@@ -100,6 +128,18 @@ objectsRouter.put('/', requireAdmin, async (req, res) => {
   res.status(201).json({ key })
 })
 
+// Create a virtual folder by uploading a zero-byte object (folder marker)
+objectsRouter.post('/mkdir', requireAdmin, async (req, res) => {
+  const bucket = String((req.params as Record<string, string>).name)
+  const prefix = String(req.body?.prefix ?? '')
+  if (!prefix || !prefix.endsWith('/')) {
+    res.status(400).json({ error: 'prefix must end with /' })
+    return
+  }
+  await s3.send(new PutObjectCommand({ Bucket: bucket, Key: prefix, Body: '' }))
+  res.status(201).json({ key: prefix })
+})
+
 objectsRouter.post('/download', requireAdmin, async (req, res) => {
   const bucket = String((req.params as Record<string, string>).name)
   const keys: string[] = Array.isArray(req.body?.keys) ? req.body.keys : []
@@ -128,7 +168,7 @@ objectsRouter.post('/copy', requireAdmin, async (req, res) => {
     res.status(400).json({ error: 'invalid_request' })
     return
   }
-  // ponytail: sequential copy, fine for the small selections this UI allows; parallelize if bulk copy grows large
+  // ponytail: sequential copy, fine for the small selections this UI allows
   for (const key of keys) {
     const copySource = `${sourceBucket}/${encodeURIComponent(key).replace(/%2F/g, '/')}`
     await s3.send(new CopyObjectCommand({ Bucket: destinationBucket, CopySource: copySource, Key: key }))

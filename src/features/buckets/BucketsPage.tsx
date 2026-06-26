@@ -3,12 +3,11 @@ import {
   ActionIcon,
   Badge,
   Button,
-  Card,
   Group,
   Modal,
   Pagination,
-  SimpleGrid,
   Stack,
+  Table,
   Text,
   TextInput,
   Title,
@@ -22,7 +21,7 @@ import { api, type BucketSummary } from '../../lib/api'
 import { classifyApiError } from '../../lib/errors'
 import { BucketSettingsModal } from './BucketSettingsModal'
 
-const PAGE_SIZE = 12
+const PAGE_SIZE = 25
 
 export function BucketsPage() {
   const { t } = useTranslation()
@@ -104,52 +103,78 @@ export function BucketsPage() {
       {!loading && filtered.length === 0 && <Text c="dimmed">{t('buckets.empty')}</Text>}
 
       {filtered.length > 0 && (
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
-          {pageItems.map((bucket) => (
-            <Card key={bucket.name} withBorder padding="md" style={{ cursor: 'default' }}>
-              <Group justify="space-between" wrap="nowrap" align="flex-start">
-                <Group
-                  gap="sm"
-                  wrap="nowrap"
-                  style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-                  onClick={() => navigate(`/buckets/${bucket.name}/`)}
-                >
-                  <IconBucket size={28} style={{ flexShrink: 0 }} />
-                  <Text fw={600} truncate size="md">
-                    {bucket.name}
+        <Table highlightOnHover verticalSpacing="sm">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>{t('buckets.name')}</Table.Th>
+              <Table.Th>{t('buckets.headerAccess')}</Table.Th>
+              <Table.Th>{t('buckets.headerObjects')}</Table.Th>
+              <Table.Th>{t('buckets.headerCreated')}</Table.Th>
+              <Table.Th w={80} />
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {pageItems.map((bucket) => (
+              <Table.Tr
+                key={bucket.name}
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/buckets/${bucket.name}/`)}
+              >
+                <Table.Td>
+                  <Group gap="xs" wrap="nowrap">
+                    <IconBucket size={16} style={{ flexShrink: 0 }} />
+                    <Text fw={500}>{bucket.name}</Text>
+                  </Group>
+                </Table.Td>
+                <Table.Td onClick={(e) => e.stopPropagation()}>
+                  <Badge
+                    variant="light"
+                    color={bucket.isPublic ? 'orange' : 'blue'}
+                    size="sm"
+                  >
+                    {bucket.isPublic ? t('buckets.settingsPublic') : t('buckets.settingsPrivate')}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" c="dimmed">
+                    {bucket.firstLevelCount === null
+                      ? t('overview.countUnavailable')
+                      : t('overview.firstLevelCount', { count: bucket.firstLevelCount })}
                   </Text>
-                </Group>
-                <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
-                  <ActionIcon variant="subtle" onClick={() => setSettingsTarget(bucket.name)}>
-                    <IconSettings size={16} />
-                  </ActionIcon>
-                  {isAdmin && (
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" c="dimmed">
+                    {bucket.creationDate
+                      ? new Date(bucket.creationDate).toLocaleString(undefined, {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })
+                      : '—'}
+                  </Text>
+                </Table.Td>
+                <Table.Td onClick={(e) => e.stopPropagation()}>
+                  <Group gap={4} wrap="nowrap">
                     <ActionIcon
-                      color="red"
                       variant="subtle"
-                      onClick={() => setDeleteTarget(bucket.name)}
+                      onClick={() => setSettingsTarget(bucket.name)}
                     >
-                      <IconTrash size={16} />
+                      <IconSettings size={16} />
                     </ActionIcon>
-                  )}
-                </Group>
-              </Group>
-
-              <Group gap="xs" mt={8} style={{ cursor: 'pointer' }} onClick={() => navigate(`/buckets/${bucket.name}/`)}>
-                <Badge variant="light" size="sm">
-                  {bucket.firstLevelCount === null
-                    ? t('overview.countUnavailable')
-                    : t('overview.firstLevelCount', { count: bucket.firstLevelCount })}
-                </Badge>
-                {bucket.creationDate && (
-                  <Text size="xs" c="dimmed">
-                    {t('buckets.createdAt', { date: new Date(bucket.creationDate).toLocaleDateString() })}
-                  </Text>
-                )}
-              </Group>
-            </Card>
-          ))}
-        </SimpleGrid>
+                    {isAdmin && (
+                      <ActionIcon
+                        color="red"
+                        variant="subtle"
+                        onClick={() => setDeleteTarget(bucket.name)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    )}
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
       )}
 
       {pageCount > 1 && <Pagination value={page} onChange={setPage} total={pageCount} />}
@@ -160,6 +185,7 @@ export function BucketsPage() {
             label={t('buckets.name')}
             value={newName}
             onChange={(e) => setNewName(e.currentTarget.value)}
+            onKeyDown={(e) => e.key === 'Enter' && createBucket()}
             autoFocus
           />
           <Group justify="flex-end">
