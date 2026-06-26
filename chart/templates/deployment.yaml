@@ -22,7 +22,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: frontend
+        - name: app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
@@ -42,21 +42,6 @@ spec:
             - name: nginx-conf-d
               mountPath: /etc/nginx/conf.d
             - name: tmp
-              mountPath: /tmp
-        - name: backend
-          image: "{{ .Values.backendImage.repository }}:{{ .Values.backendImage.tag }}"
-          imagePullPolicy: {{ .Values.backendImage.pullPolicy }}
-          ports:
-            - containerPort: 4000
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
-          volumeMounts:
-            - name: backend-tmp
               mountPath: /tmp
           env:
             - name: S3_ENDPOINT
@@ -120,6 +105,4 @@ spec:
         - name: nginx-conf-d
           emptyDir: {}
         - name: tmp
-          emptyDir: {}
-        - name: backend-tmp
           emptyDir: {}

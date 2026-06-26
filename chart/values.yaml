@@ -3,11 +3,6 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-backendImage:
-  repository: s3-console-backend
-  tag: latest
-  pullPolicy: IfNotPresent
-
 replicaCount: 1
 
 service:
@@ -19,14 +14,17 @@ ingress:
   className: ""
   host: ""
 
-# Gateway API HTTPRoute (alternative to ingress, for clusters with a Gateway controller).
-# Enable auth.disableProxyHeaders=true when using this without an oauth2-proxy.
-gateway:
+# Gateway API exposure with automatic TLS via cert-manager.
+# Replaces the Ingress when enabled. Requires cert-manager and a Gateway controller
+# (e.g. Cilium, Envoy Gateway, nginx Gateway Fabric) pre-installed in the cluster.
+# Enable auth.disableProxyHeaders=true when exposing publicly without an oauth2-proxy.
+gatewayRoute:
   enabled: false
-  name: ""          # name of the Gateway resource (required if enabled)
-  namespace: ""     # namespace of the Gateway (defaults to same namespace)
-  sectionName: ""   # optional listener name
-  host: ""          # hostname for routing (optional, omit to match all hosts)
+  domains: []           # e.g. [s3-console.example.com]
+  gateway:
+    name: public-gateway
+    namespace: platform-system
+  issuer: letsencrypt-prod   # cert-manager ClusterIssuer name
 
 # S3/Minio connection used by the backend. Never exposed to the browser.
 s3:
@@ -37,8 +35,8 @@ s3:
   # If empty, a Secret named "<release>-credentials" is auto-generated using superAdmin below.
   existingSecret: ""
 
-# Superadmin credentials for the S3/MinIO backend.
-# Ignored when s3.existingSecret is set.
+# Superadmin credentials for the S3/MinIO backend AND the web login page.
+# Ignored for S3 when s3.existingSecret is set, but always used for app login.
 # The auto-generated Secret persists across upgrades (lookup-based idempotency).
 superAdmin:
   username: admin
@@ -49,7 +47,7 @@ auth:
   groupsHeader: X-Forwarded-Groups
   adminGroup: s3-admin
   # Set to true when the app is exposed publicly without a trusted oauth2-proxy
-  # in front (e.g. via gateway.enabled=true). Disables X-Forwarded-* header auth
+  # in front (e.g. via gatewayRoute.enabled=true). Disables X-Forwarded-* header auth
   # entirely; only JWT cookie (username/password login) is accepted.
   # IMPORTANT: leave false only if a trusted proxy always injects the user headers.
   disableProxyHeaders: false
@@ -58,9 +56,6 @@ auth:
   # Prevents header-forging if the Service is accidentally exposed without the proxy.
   sharedSecretHeader: ""  # e.g. X-Internal-Token
   sharedSecretValue: ""
-  # Simulates an admin user, bypassing the header check entirely. Same flag as
-  # local dev (DEV_AUTH_HEADER_BYPASS). Default false - only safe to enable
-  # when the Service is unreachable except via an already-trusted path
-  # (e.g. kubectl port-forward only, no Ingress/gatewayRoute at all). Never
-  # enable this on a deployment reachable from outside the cluster.
+  # Simulates an admin user, bypassing the header check entirely.
+  # Never enable on a deployment reachable from outside the cluster.
   devHeaderBypass: false

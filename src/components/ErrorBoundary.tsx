@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react'
 import { Alert, Stack, Text } from '@mantine/core'
+import i18n from '../i18n'
 
 interface Props {
   children: ReactNode
@@ -20,7 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <Stack p="xl">
-          <Alert color="red" title="Unexpected error">
+          <Alert color="red" title={i18n.t('errors.unexpectedTitle')}>
             <Text>{this.state.error.message}</Text>
           </Alert>
         </Stack>

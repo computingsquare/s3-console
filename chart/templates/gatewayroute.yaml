@@ -1,0 +1,44 @@
+{{- if .Values.gatewayRoute.enabled }}
+{{- if not .Values.gatewayRoute.domains }}
+{{- fail "gatewayRoute.domains must contain at least one hostname" }}
+{{- end }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  secretName: {{ .Release.Name }}-tls
+  issuerRef:
+    name: {{ .Values.gatewayRoute.issuer }}
+    kind: ClusterIssuer
+  dnsNames:
+    {{- range .Values.gatewayRoute.domains }}
+    - {{ . | quote }}
+    {{- end }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  parentRefs:
+    - name: {{ .Values.gatewayRoute.gateway.name }}
+      namespace: {{ .Values.gatewayRoute.gateway.namespace }}
+  hostnames:
+    {{- range .Values.gatewayRoute.domains }}
+    - {{ . | quote }}
+    {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ .Release.Name }}
+          port: {{ .Values.service.port }}
+{{- end }}
