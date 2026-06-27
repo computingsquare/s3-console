@@ -9,14 +9,12 @@ browsing, upload/download, multi-select, per-bucket policy/CORS/lifecycle
 configuration, role-based access control. No client-side credentials — a thin
 Node backend holds the S3 secret and is the only thing that ever talks to S3.
 
-> [!WARNING]
-> **Experimental, vibe-coded, not production-ready.** This project started to
-> fill gaps in MinIO's Community console and as a reaction to MinIO's AGPLv3
-> licensing change — the goal is a lightweight, **storage-backend-agnostic**
-> console that works the same against MinIO, AWS S3, Ceph, RustFS, or anything
-> else speaking the S3 API. It is under active development, has not been
-> security-audited, and breaking changes can land at any time. Don't run it
-> against production data yet. Issues, feedback and PRs are very welcome.
+> [!IMPORTANT]
+> **Alpha release (v0.1.0-alpha).** This project provides a lightweight,
+> **storage-backend-agnostic** web console for S3-compatible object storage.
+> Built to work the same against MinIO, AWS S3, Ceph, RustFS, or any S3-API
+> endpoint. Currently in active development with a focus on core S3 operations
+> and security hardening. Feedback, issues, and contributions are welcome.
 
 ## Screenshots
 
@@ -37,6 +35,23 @@ Node backend holds the S3 secret and is the only thing that ever talks to S3.
 - Drag & drop upload, download, metadata, tags, inline preview (image/text/PDF)
 - Light/dark theme, English/French UI
 - Rootless Docker images, Kubernetes `securityContext`/`seccomp` out of the box
+
+## Status & Roadmap
+
+**v0.1.0-alpha** : Core S3 operations (bucket/object browse, upload/download, multi-select, basic policies).
+
+- ✅ Bucket management (create, delete, settings)
+- ✅ Object operations (upload, download, delete, metadata, tags)
+- ✅ RBAC via headers (`admin` / `viewer`)
+- ✅ Kubernetes deployment (Helm chart, security defaults)
+- 🔄 Security audit (in progress)
+- 📋 Planned: versioning, lifecycle rules polish, MinIO admin API integration
+
+**Pre-production checklist:**
+- [ ] Security audit complete
+- [ ] E2E tests passing (Playwright)
+- [ ] Full API documentation
+- [ ] Helm chart stable (semver)
 
 ## Architecture
 
@@ -90,6 +105,38 @@ instantly, with no authentication at all.
   be set in production.
 - No S3 credential or token ever reaches the frontend bundle. The only
   `VITE_*` variables are UI preferences, never secrets.
+
+## Installation
+
+### Kubernetes (Helm)
+
+Helm chart is published with every release. Install via GitHub releases or OCI registry:
+
+```bash
+# Option 1: GitHub Releases (Helm chart repository)
+helm repo add s3-console https://github.com/computingsquare/s3-console/releases/download/latest/
+helm install s3-console s3-console/s3-console \
+  --set s3.endpoint=https://s3.example.com \
+  --set s3.existingSecret=s3-credentials \
+  --set auth.adminGroup=s3-admin
+
+# Option 2: OCI registry
+helm install s3-console oci://ghcr.io/computingsquare/s3-console-chart:0.1.0 \
+  --set s3.endpoint=https://s3.example.com \
+  --set s3.existingSecret=s3-credentials
+```
+
+For full options and security hardening, see [`chart/README.md`](./chart/README.md).
+
+### Docker
+
+```bash
+docker run -p 8080:8080 \
+  -e S3_ENDPOINT=https://s3.example.com \
+  -e S3_ACCESS_KEY_ID=... \
+  -e S3_SECRET_ACCESS_KEY=... \
+  ghcr.io/computingsquare/s3-console:0.1.0
+```
 
 ## Local development
 

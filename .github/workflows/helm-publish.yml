@@ -1,0 +1,60 @@
+name: Publish Helm chart
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Chart version (e.g., 0.1.0)
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set chart version
+        id: chart-version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=${{ github.event.inputs.version }}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Chart version: $VERSION"
+
+      - name: Update Chart.yaml version
+        run: |
+          sed -i 's/^version: .*/version: ${{ steps.chart-version.outputs.version }}/' chart/Chart.yaml
+          sed -i 's/^appVersion: .*/appVersion: "${{ steps.chart-version.outputs.version }}"/' chart/Chart.yaml
+
+      - name: Package Helm chart
+        run: |
+          mkdir -p helm-release
+          helm package chart --destination helm-release
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: helm-release/s3-console-*.tgz
+          draft: false
+          prerelease: ${{ contains(steps.chart-version.outputs.version, '-') }}
+          body: |
+            ## Helm Chart v${{ steps.chart-version.outputs.version }}
+
+            ```bash
+            helm repo add s3-console https://github.com/computingsquare/s3-console/releases/download/v${{ steps.chart-version.outputs.version }}/
+            helm install s3-console s3-console/s3-console
+            ```
+
+            Or via OCI:
+            ```bash
+            helm install s3-console oci://ghcr.io/computingsquare/s3-console-chart:${{ steps.chart-version.outputs.version }}
+            ```
