@@ -16,12 +16,12 @@ services:
       timeout: 3s
       retries: 5
 
-  app:
+  backend:
     build:
       context: .
-      target: app
+      target: backend
     ports:
-      - "8080:8080"
+      - "4000:4000"
     environment:
       S3_ENDPOINT: http://minio:9000
       S3_ACCESS_KEY_ID: minioadmin
@@ -31,11 +31,12 @@ services:
       AUTH_LOCAL_USERNAME: minioadmin
       AUTH_LOCAL_PASSWORD: minioadmin
       AUTH_JWT_SECRET: dev-jwt-secret-not-for-production
+      NODE_ENV: production
     depends_on:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
       interval: 5s
       timeout: 3s
       retries: 10

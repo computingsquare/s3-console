@@ -12,6 +12,8 @@ const app = express()
 app.use(helmet())
 app.use(cookieParser())
 app.use(express.json())
+// Health check (for docker/k8s probes)
+app.get('/health', (_req, res) => res.status(200).send('OK'))
 // Public: login / logout (no auth required)
 app.use('/api/auth', authRouter)
 

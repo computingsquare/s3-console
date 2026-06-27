@@ -46,7 +46,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install
       - run: npm run build
-      - run: docker compose up --build -d
+      - run: docker compose -f docker-compose.ci.yml up --build --wait
       - run: npm run test:e2e
       - name: Upload test report
         if: always()
