@@ -12,16 +12,6 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [app, frontend, backend]
-        include:
-          - target: app
-            image: s3-console
-          - target: frontend
-            image: s3-console-frontend
-          - target: backend
-            image: s3-console-backend
     steps:
       - uses: actions/checkout@v4
 
@@ -36,7 +26,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/computingsquare/${{ matrix.image }}
+          images: ghcr.io/computingsquare/s3-console
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -45,7 +35,6 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          target: ${{ matrix.target }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
