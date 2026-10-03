@@ -37,6 +37,9 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -46,6 +49,13 @@ jobs:
       - run: npm ci
       - run: npx playwright install
       - run: npm run build
+      # MinIO no longer publishes images anonymously (Docker Hub and quay.io);
+      # pull the organisation's GHCR mirror of the release used in production.
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - run: docker compose -f docker-compose.ci.yml up --build --wait
       - run: npm run test:e2e
       - name: Upload test report
