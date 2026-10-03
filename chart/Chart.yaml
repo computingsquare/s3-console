@@ -2,7 +2,7 @@ apiVersion: v2
 name: s3-console
 description: Self-hosted web console for S3-compatible object storage (MinIO, AWS S3, Ceph, ...)
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "0.1.0"
 home: https://github.com/computingsquare/s3-console
 sources:

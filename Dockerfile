@@ -22,7 +22,7 @@ RUN npm ci --omit=dev
 
 # ---- final image: frontend (nginx, serves the SPA, proxies /api to the backend sidecar) ----
 # nginxinc/nginx-unprivileged: runs as uid 101, listens on 8080 (no privileged port), rootless.
-FROM nginxinc/nginx-unprivileged:alpine AS frontend
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS frontend
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 ENV BACKEND_HOST=localhost:4000
@@ -42,7 +42,7 @@ CMD ["node", "dist/index.js"]
 # ---- final image: single container with frontend (nginx) + backend (node) ----
 # Same uid (101, nginx-unprivileged's default) for both processes since they
 # share one container security context. Backend listens on localhost:4000 only.
-FROM nginxinc/nginx-unprivileged:alpine AS app
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS app
 COPY --from=frontend-build --chown=nginx:nginx /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=backend-build --chown=nginx:nginx /app/dist /app/backend/dist
